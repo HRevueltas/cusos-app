@@ -1,0 +1,182 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String       @id @default(cuid())
+  email          String       @unique
+  name           String
+  password       String
+  role           Role         @default(STUDENT)
+  avatar         String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  coursesCreated Course[]     @relation("InstructorCourses")
+  enrollments    Enrollment[]
+  reviews        Review[]
+  activityLogs   ActivityLog[]
+}
+
+model Course {
+  id            String       @id @default(cuid())
+  title         String
+  description   String
+  image         String?
+  category      String
+  level         Level
+  price         Float        @default(0)
+  isFree        Boolean      @default(true)
+  isPublished   Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  instructorId  String
+  imagePublicId String?
+  instructor    User         @relation("InstructorCourses", fields: [instructorId], references: [id])
+  enrollments   Enrollment[]
+  modules       Module[]
+  reviews       Review[]
+}
+
+model Module {
+  id          String   @id @default(cuid())
+  title       String
+  order       Int
+  courseId    String
+  description String?
+  lessons     Lesson[]
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model Lesson {
+  id        String     @id @default(cuid())
+  title     String
+  content   String
+  type      LessonType
+  videoUrl  String?
+  fileUrl   String?
+  order     Int
+  moduleId  String
+  module    Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress  Progress[]
+  questions Question[]
+}
+
+model Question {
+  id       String   @id @default(cuid())
+  question String
+  order    Int
+  lessonId String
+  answers  Answer[]
+  options  Option[]
+  lesson   Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}
+
+model Option {
+  id         String   @id @default(cuid())
+  text       String
+  isCorrect  Boolean  @default(false)
+  order      Int
+  questionId String
+  answers    Answer[]
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model Answer {
+  id           String     @id @default(cuid())
+  enrollmentId String
+  questionId   String
+  optionId     String
+  answeredAt   DateTime   @default(now())
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+  option       Option     @relation(fields: [optionId], references: [id])
+  question     Question   @relation(fields: [questionId], references: [id])
+
+  @@unique([enrollmentId, questionId])
+}
+
+model Enrollment {
+  id         String     @id @default(cuid())
+  studentId  String
+  courseId   String
+  enrolledAt DateTime   @default(now())
+  answers    Answer[]
+  course     Course     @relation(fields: [courseId], references: [id])
+  student    User       @relation(fields: [studentId], references: [id])
+  progress   Progress[]
+
+  @@unique([studentId, courseId])
+}
+
+model Progress {
+  id           String     @id @default(cuid())
+  enrollmentId String
+  lessonId     String
+  completed    Boolean    @default(false)
+  completedAt  DateTime?
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+  lesson       Lesson     @relation(fields: [lessonId], references: [id])
+
+  @@unique([enrollmentId, lessonId])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String?
+  userId    String
+  courseId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  course    Course   @relation(fields: [courseId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, courseId])
+}
+
+enum Role {
+  ADMIN
+  INSTRUCTOR
+  STUDENT
+}
+
+enum Level {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum LessonType {
+  TEXT
+  VIDEO
+  PDF
+  QUIZ
+}
+
+model SystemSettings {
+  id       Int    @id @default(autoincrement())
+  general  Json
+  features Json
+  security Json
+  content  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  details   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
