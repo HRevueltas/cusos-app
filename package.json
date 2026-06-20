@@ -38,7 +38,7 @@
     "cloudinary": "^2.6.1",
     "clsx": "^2.1.1",
     "html2canvas": "^1.4.1",
-    "jspdf": "^3.0.1",
+    "jspdf": "^4.2.1",
     "lexical": "^0.32.1",
     "lucide-react": "^0.515.0",
     "next": "15.5.18",
